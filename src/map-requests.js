@@ -19,7 +19,6 @@ import Sidebar from "./components/slidebar";
 import BuildingCard from "./components/building-card";
 import BuildingDetailsModal from "./components/building-details";
 import "./App.css";
-//import { sendNotification } from "../backend/notification";
 
 const ManageRequests = () => {
   const navigate = useNavigate();
@@ -29,6 +28,36 @@ const ManageRequests = () => {
   const [searchVisible, setSearchVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
+
+  // OneSignal notification function
+  const sendOneSignalNotification = async (message, heading) => {
+    const payload = {
+      app_id: "bc188d2c-60cb-4bca-8e15-07a23c0e4bde",
+      contents: { en: message },
+      headings: { en: heading },
+      included_segments: ["All"],
+    };
+
+    try {
+      const response = await fetch(
+        "https://onesignal.com/api/v1/notifications",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            Authorization:
+              "Basic os_v2_app_xqmi2ldaznf4vdqva6rdydsl32wpoxdkx2zuypfzh4enjmpeivo3ernm3kwnrpeuecrxu2n2kihddyocrw5s7qtzy5uie2tso4ufo3y",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+      return await response.json();
+    } catch (error) {
+      console.error("Error sending notification:", error);
+      throw error;
+    }
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -99,11 +128,9 @@ const ManageRequests = () => {
   const handleAcceptRequest = async (building) => {
     try {
       setLoading(true);
-      // Update the building request status to "approved" in Firestore
       const buildingRef = doc(db, "requestforanmap", building.id);
       await updateDoc(buildingRef, { status: "approved" });
 
-      // Get user document by ID to retrieve their FCM token and other details
       const userRef = doc(db, "users", building.userId);
       const userSnap = await getDoc(userRef);
 
@@ -115,22 +142,19 @@ const ManageRequests = () => {
       const userEmail = userData.email;
       const userName = userData.username;
 
-      // Check if fcmToken exists
-      if (!userData.fcmToken) {
-        throw new Error("No FCM token found for user");
-      }
-
-      const fcmToken = userData.fcmToken;
-
-      // Send Push Notification to the user
-
-      // Send an email to the user about the approval
       if (userEmail) {
         await sendApprovalEmail(userEmail, userName);
       }
 
-      // Optionally log that the request was approved successfully
-      console.log("Request approved and notifications sent");
+      // Send broadcast notification
+      await sendOneSignalNotification(
+        `Building "${building.buildingName}" has been approved`,
+        "New Building Approved"
+      );
+
+      setSuccessMessage("Request approved successfully!");
+      closeModal();
+      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error) {
       console.error("Error approving request:", error);
       setError(error.message || "Error approving request");
@@ -156,16 +180,18 @@ const ManageRequests = () => {
       const userEmail = userData.email;
 
       if (userEmail) {
-        const emailSent = await sendDeclineEmail(
-          userEmail,
-          building.buildingName
-        );
-        if (!emailSent) {
-          throw new Error("Email failed to send");
-        }
-      } else {
-        throw new Error("User email not found");
+        await sendDeclineEmail(userEmail, building.buildingName);
       }
+
+      // Send broadcast notification
+      await sendOneSignalNotification(
+        `Building "${building.buildingName}" request has been declined`,
+        "Building Request Declined"
+      );
+
+      setSuccessMessage("Request declined successfully!");
+      closeModal();
+      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error) {
       console.error("Error declining request:", error);
       setError(error.message || "Error declining request");
@@ -183,6 +209,8 @@ const ManageRequests = () => {
       ) {
         setLoading(true);
         await deleteDoc(doc(db, "requestforanmap", building.id));
+        setSuccessMessage("Request deleted successfully!");
+        setTimeout(() => setSuccessMessage(null), 3000);
       }
     } catch (error) {
       console.error("Error deleting request:", error);
@@ -203,6 +231,18 @@ const ManageRequests = () => {
               type="button"
               className="btn-close"
               onClick={() => setError(null)}
+              aria-label="Close"
+            ></button>
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="alert alert-success" role="alert">
+            {successMessage}
+            <button
+              type="button"
+              className="btn-close"
+              onClick={() => setSuccessMessage(null)}
               aria-label="Close"
             ></button>
           </div>

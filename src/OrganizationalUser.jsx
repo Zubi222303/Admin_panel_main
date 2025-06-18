@@ -3,11 +3,11 @@ import { collection, getDocs, doc, deleteDoc } from "firebase/firestore";
 import { db, auth } from "./firebase";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { useNavigate } from "react-router-dom";
-import { FaUser, FaSearch, FaTrash } from "react-icons/fa";
+import { FaUserTie, FaSearch, FaTrash } from "react-icons/fa";
 import Sidebar from "./components/slidebar";
 import defaultimage from "./Assets/ProfilePicture.jpg";
 
-const Users = () => {
+const OrganizationalUser = () => {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -26,10 +26,10 @@ const Users = () => {
     try {
       await deleteDoc(doc(db, "users", userId));
       setUsers(users.filter((user) => user.id !== userId));
-      alert("User removed successfully!");
+      alert("Organizer removed successfully!");
     } catch (error) {
       console.error("Error removing user:", error);
-      alert("Failed to remove user.");
+      alert("Failed to remove organizer.");
     }
   };
 
@@ -44,28 +44,27 @@ const Users = () => {
             displayName: auth.currentUser?.displayName || null,
           }))
           .filter(
-            (user) => user.username && user.role?.toLowerCase() === "visitor"
+            (user) => user.username && user.role?.toLowerCase() === "organizer"
           );
 
         setUsers(usersData);
       } catch (error) {
-        console.error("Error fetching users:", error);
+        console.error("Error fetching organizers:", error);
       }
     };
 
     fetchUsers();
   }, []);
 
-  const lowercasedSearch = searchTerm.toLowerCase();
-
-  const filteredUsers = users.filter(
-    (user) =>
-      user.username?.toLowerCase().includes(lowercasedSearch) ||
-      user.name?.toLowerCase().includes(lowercasedSearch) ||
-      user.email?.toLowerCase().includes(lowercasedSearch) ||
-      (user.displayName &&
-        user.displayName.toLowerCase().includes(lowercasedSearch))
-  );
+  const filteredUsers = users.filter((user) => {
+    const term = searchTerm.toLowerCase();
+    return (
+      user.username?.toLowerCase().includes(term) ||
+      user.name?.toLowerCase().includes(term) ||
+      user.email?.toLowerCase().includes(term) ||
+      (user.displayName && user.displayName.toLowerCase().includes(term))
+    );
+  });
 
   const getDisplayName = (user) => {
     return (
@@ -84,12 +83,12 @@ const Users = () => {
       <div className="container mt-4">
         <div className="d-flex justify-content-between align-items-center mb-3 shadow p-3 bg-white rounded">
           <h2 className="mb-0 d-flex align-items-center">
-            <FaUser
-              style={{ color: "#044EB0" }}
+            <FaUserTie
+              style={{ color: "#198754" }}
               className="me-3 fw-bold"
               size={30}
-            />{" "}
-            Visitors
+            />
+            Organizers
           </h2>
           <div className="d-flex align-items-center">
             <span
@@ -102,7 +101,7 @@ const Users = () => {
               <input
                 type="text"
                 className="form-control"
-                placeholder="Search visitors..."
+                placeholder="Search organizers..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -112,7 +111,7 @@ const Users = () => {
 
         <div className="table-responsive">
           <table className="table table-hover table-striped shadow-lg rounded">
-            <thead className="table-dark" style={{ background: "#044EB0" }}>
+            <thead className="table-dark">
               <tr>
                 <th>Profile</th>
                 <th>Display Name</th>
@@ -126,18 +125,16 @@ const Users = () => {
                 filteredUsers.map((user) => (
                   <tr key={user.id}>
                     <td>
-                      <div className="d-flex align-items-center">
-                        <img
-                          src={user.profileImage || defaultimage}
-                          alt={getDisplayName(user)}
-                          className="rounded-circle border"
-                          style={{
-                            width: "40px",
-                            height: "40px",
-                            objectFit: "cover",
-                          }}
-                        />
-                      </div>
+                      <img
+                        src={user.profileImage || defaultimage}
+                        alt={getDisplayName(user)}
+                        className="rounded-circle border"
+                        style={{
+                          width: "40px",
+                          height: "40px",
+                          objectFit: "cover",
+                        }}
+                      />
                     </td>
                     <td>{getDisplayName(user)}</td>
                     <td>{user.username || "N/A"}</td>
@@ -155,7 +152,7 @@ const Users = () => {
               ) : (
                 <tr>
                   <td colSpan="5" className="text-center">
-                    No visitor users found
+                    No organizers found
                   </td>
                 </tr>
               )}
@@ -167,4 +164,4 @@ const Users = () => {
   );
 };
 
-export default Users;
+export default OrganizationalUser;

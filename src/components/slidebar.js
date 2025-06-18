@@ -6,13 +6,14 @@ import {
   Bell,
   Eye,
   LogOut,
+  User,
 } from "lucide-react";
 import logo from "../Assets/Logowhite.png";
 
 const Sidebar = ({ handleLogout }) => {
   return (
     <nav
-      className="col-md-3 col-lg-2 d-md-block text-white p-3 manage-nav vh-100"
+      className="col-md-3 col-lg-2 d-md-block text-white p-3 manage-nav vh-100 position-sticky top-0 overflow-y-auto"
       style={{ backgroundColor: "#282c34" }}
     >
       <div className="text-center mb-3">
@@ -38,7 +39,7 @@ const Sidebar = ({ handleLogout }) => {
         </li>
         <li className="nav-item mb-3">
           <NavLink
-            to="/profile"
+            to="/adminProfile"
             className={({ isActive }) =>
               `nav-link text-white p-2 rounded hover-bg ${
                 isActive ? "active-nav" : ""
@@ -48,40 +49,30 @@ const Sidebar = ({ handleLogout }) => {
             <UsersIcon className="me-2" size={20} /> User Profile
           </NavLink>
         </li>
+
         <li className="nav-item mb-3">
           <NavLink
-            to="/form-submissions"
+            to="/users"
             className={({ isActive }) =>
               `nav-link text-white p-2 rounded hover-bg ${
                 isActive ? "active-nav" : ""
               }`
             }
           >
-            <FileText className="me-2" size={20} /> Form Submissions
+            <User className="me-2" size={20} /> Visitors
           </NavLink>
         </li>
         <li className="nav-item mb-3">
           <NavLink
-            to="/notifications"
+            to="/OrganizationalUser"
             className={({ isActive }) =>
               `nav-link text-white p-2 rounded hover-bg ${
                 isActive ? "active-nav" : ""
               }`
             }
           >
-            <Bell className="me-2" size={20} /> Notifications
-          </NavLink>
-        </li>
-        <li className="nav-item mb-3">
-          <NavLink
-            to="/track-visitors"
-            className={({ isActive }) =>
-              `nav-link text-white p-2 rounded hover-bg ${
-                isActive ? "active-nav" : ""
-              }`
-            }
-          >
-            <Eye className="me-2" size={20} /> Track Visitors
+            <User className="me-2" size={20} />
+            Organizers
           </NavLink>
         </li>
       </ul>

@@ -62,19 +62,11 @@ const Users = () => {
     (user) =>
       user.username?.toLowerCase().includes(lowercasedSearch) ||
       user.name?.toLowerCase().includes(lowercasedSearch) ||
-      user.email?.toLowerCase().includes(lowercasedSearch) ||
-      (user.displayName &&
-        user.displayName.toLowerCase().includes(lowercasedSearch))
+      user.email?.toLowerCase().includes(lowercasedSearch)
   );
 
   const getDisplayName = (user) => {
-    return (
-      user.displayName ||
-      user.name ||
-      user.username ||
-      user.email?.split("@")[0] ||
-      "User"
-    );
+    return user.name || user.username || user.email?.split("@")[0] || "User";
   };
 
   return (
@@ -115,7 +107,7 @@ const Users = () => {
             <thead className="table-dark" style={{ background: "#044EB0" }}>
               <tr>
                 <th>Profile</th>
-                <th>Display Name</th>
+
                 <th>Username</th>
                 <th>Email</th>
                 <th>Remove</th>
@@ -139,7 +131,7 @@ const Users = () => {
                         />
                       </div>
                     </td>
-                    <td>{getDisplayName(user)}</td>
+
                     <td>{user.username || "N/A"}</td>
                     <td>{user.email || "N/A"}</td>
                     <td>

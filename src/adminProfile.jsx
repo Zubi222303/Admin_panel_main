@@ -53,7 +53,7 @@ const AdminProfile = () => {
       const response = await fetch(imagePreview);
       const blob = await response.blob();
 
-      const storageRef = ref(storage, `profile_images/${user.uid}`);
+      const storageRef = ref(storage, `profileImage/${user.uid}`);
       await uploadBytes(storageRef, blob);
       const downloadURL = await getDownloadURL(storageRef);
 

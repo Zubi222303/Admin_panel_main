@@ -67,13 +67,7 @@ const OrganizationalUser = () => {
   });
 
   const getDisplayName = (user) => {
-    return (
-      user.displayName ||
-      user.name ||
-      user.username ||
-      user.email?.split("@")[0] ||
-      "User"
-    );
+    return user.name || user.username || user.email?.split("@")[0] || "User";
   };
 
   return (
@@ -114,7 +108,6 @@ const OrganizationalUser = () => {
             <thead className="table-dark">
               <tr>
                 <th>Profile</th>
-                <th>Display Name</th>
                 <th>Username</th>
                 <th>Email</th>
                 <th>Remove</th>
@@ -136,7 +129,7 @@ const OrganizationalUser = () => {
                         }}
                       />
                     </td>
-                    <td>{getDisplayName(user)}</td>
+
                     <td>{user.username || "N/A"}</td>
                     <td>{user.email || "N/A"}</td>
                     <td>

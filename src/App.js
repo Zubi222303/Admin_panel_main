@@ -119,6 +119,7 @@ import { doc, getDoc } from "firebase/firestore";
 import ManageRequests from "./map-requests";
 import { onAuthStateChanged } from "firebase/auth";
 import OrganizationalUser from "./OrganizationalUser";
+import SendNotificationForm from "./send-notification-form";
 
 // Enhanced ProtectedRoute component with better error handling
 function ProtectedRoute({ children }) {
@@ -274,6 +275,14 @@ function App() {
           element={
             <ProtectedRoute>
               <AdminProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/send-notification-form"
+          element={
+            <ProtectedRoute>
+              <SendNotificationForm />
             </ProtectedRoute>
           }
         />

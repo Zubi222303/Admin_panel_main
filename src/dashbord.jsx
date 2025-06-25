@@ -1,21 +1,351 @@
+// import React, { useState, useEffect } from "react";
+// import { Link, useNavigate } from "react-router-dom";
+// import {
+//   Users,
+//   Clock,
+//   CheckCircle,
+//   XCircle,
+//   Download,
+//   ChevronRight,
+// } from "lucide-react";
+// import Sidebar from "./components/slidebar";
+// import defaultimage from "./Assets/ProfilePicture.jpg";
+// import { auth, db } from "./firebase";
+// import { collection, getDocs, query, where } from "firebase/firestore";
+// import { Bar, Pie } from "react-chartjs-2";
+// import {
+//   Chart as ChartJS,
+//   BarElement,
+//   CategoryScale,
+//   LinearScale,
+//   Tooltip,
+//   Legend,
+//   ArcElement,
+// } from "chart.js";
+// import "./App.css";
+
+// ChartJS.register(
+//   BarElement,
+//   CategoryScale,
+//   LinearScale,
+//   Tooltip,
+//   Legend,
+//   ArcElement
+// );
+
+// const DashboardHome = () => {
+//   const navigate = useNavigate();
+//   const [, setUser] = useState(auth.currentUser);
+//   const [displayName, setDisplayName] = useState("");
+//   const [photoURL, setPhotoURL] = useState(defaultimage);
+//   const [totalUsers, setTotalUsers] = useState(0);
+//   const [orgUsers, setOrgUsers] = useState(0);
+//   const [declinedRequests, setDeclinedRequests] = useState(0);
+//   const [approvedRequests, setApprovedRequests] = useState(0);
+//   const [loading, setLoading] = useState(true);
+
+//   useEffect(() => {
+//     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+//       if (currentUser) {
+//         setUser(currentUser);
+//         setDisplayName(
+//           currentUser.displayName || currentUser.email?.split("@")[0]
+//         );
+//         setPhotoURL(currentUser.photoURL || defaultimage);
+//       }
+//     });
+
+//     fetchCounts();
+//     return () => unsubscribe();
+//   }, []);
+
+//   const fetchCounts = async () => {
+//     setLoading(true);
+//     try {
+//       const visitorSnap = await getDocs(
+//         query(collection(db, "users"), where("role", "==", "visitor"))
+//       );
+//       const validVisitors = visitorSnap.docs.filter(
+//         (doc) => doc.data().username
+//       );
+
+//       const orgSnap = await getDocs(
+//         query(collection(db, "users"), where("role", "==", "organizer"))
+//       );
+
+//       const declinedSnap = await getDocs(
+//         query(
+//           collection(db, "requestforanmap"),
+//           where("status", "==", "declined")
+//         )
+//       );
+
+//       const approvedSnap = await getDocs(
+//         query(
+//           collection(db, "requestforanmap"),
+//           where("status", "==", "accepted")
+//         )
+//       );
+
+//       setTotalUsers(validVisitors.length);
+//       setOrgUsers(orgSnap.size);
+//       setDeclinedRequests(declinedSnap.size);
+//       setApprovedRequests(approvedSnap.size);
+//     } catch (err) {
+//       console.error("Firestore error:", err);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   const barChartData = {
+//     labels: ["Visitors", "Organizers", "Declined", "Approved"],
+//     datasets: [
+//       {
+//         label: "Count",
+//         data: [totalUsers, orgUsers, declinedRequests, approvedRequests],
+//         backgroundColor: ["#4fc3f7", "#1a237e", "#f44336", "#66bb6a"],
+//         borderRadius: 4,
+//         barThickness: 30,
+//       },
+//     ],
+//   };
+
+//   const pieChartData = {
+//     labels: ["Visitors", "Organizers"],
+//     datasets: [
+//       {
+//         data: [totalUsers, orgUsers],
+//         backgroundColor: ["#4fc3f7", "#1a237e"],
+//         borderWidth: 0,
+//       },
+//     ],
+//   };
+
+//   const handleExportCSV = () => {
+//     const headers = ["Metric", "Count"];
+//     const data = [
+//       ["Total Visitors", totalUsers],
+//       ["Organizers", orgUsers],
+//       ["Declined Requests", declinedRequests],
+//       ["Approved Requests", approvedRequests],
+//     ];
+
+//     let csvContent = "data:text/csv;charset=utf-8,";
+//     csvContent += headers.join(",") + "\n";
+//     data.forEach((row) => {
+//       csvContent += row.map((item) => `"${item}"`).join(",") + "\n";
+//     });
+
+//     const encodedUri = encodeURI(csvContent);
+//     const link = document.createElement("a");
+//     link.setAttribute("href", encodedUri);
+//     link.setAttribute("download", "dashboard-data.csv");
+//     document.body.appendChild(link);
+//     link.click();
+//     document.body.removeChild(link);
+//   };
+
+//   const handleLogout = async () => {
+//     try {
+//       await auth.signOut();
+//       navigate("/login");
+//     } catch (error) {
+//       console.error("Logout failed:", error.message);
+//     }
+//   };
+
+//   return (
+//     <div className="d-flex flex-column flex-md-row min-vh-100">
+//       <Sidebar handleLogout={handleLogout} />
+
+//       <div className="flex-grow-1 p-4 bg-light">
+//         {/* Header */}
+//         <header className="d-flex justify-content-between align-items-center bg-white shadow-sm p-3 rounded mb-4">
+//           <div>
+//             <h4 className="fw-bold text-dark mb-0">Dashboard Overview</h4>
+//             {/* <small className="text-muted">Welcome, {displayName}</small> */}
+//           </div>
+//           <div className="d-flex align-items-center">
+//             <span className="me-3 text-dark fw-medium">{displayName}</span>
+//             <img
+//               src={photoURL}
+//               alt="User"
+//               className="rounded-circle border border-white shadow-sm"
+//               style={{ width: 40, height: 40, objectFit: "cover" }}
+//             />
+//           </div>
+//         </header>
+
+//         {/* Stat Cards */}
+//         <div className="row g-3 mb-4">
+//           <StatCard
+//             title="Visitors"
+//             icon={<Users size={20} />}
+//             count={totalUsers}
+//             link="/users"
+//             color="bg-info-subtle"
+//             textColor="text-info"
+//             borderColor="border-info"
+//           />
+//           <StatCard
+//             title="Organizers"
+//             icon={<Users size={20} />}
+//             count={orgUsers}
+//             link="/OrganizationalUser"
+//             color="bg-primary-subtle"
+//             textColor="text-primary"
+//             borderColor="border-primary"
+//           />
+//           <StatCard
+//             title="Declined Requests"
+//             icon={<XCircle size={20} />}
+//             count={declinedRequests}
+//             link="/map-requests?filter=declined"
+//             color="bg-danger-subtle"
+//             textColor="text-danger"
+//             borderColor="border-danger"
+//           />
+//           <StatCard
+//             title="Approved Requests"
+//             icon={<CheckCircle size={20} />}
+//             count={approvedRequests}
+//             link="/map-requests?filter=approved"
+//             color="bg-success-subtle"
+//             textColor="text-success"
+//             borderColor="border-success"
+//           />
+//         </div>
+
+//         {/* Analytics Section */}
+//         <div className="row g-4 mb-4">
+//           <div className="col-md-8">
+//             <div className="card shadow-sm">
+//               <div className="card-body">
+//                 <h6 className="fw-semibold text-secondary mb-3">
+//                   Activity Summary
+//                 </h6>
+//                 <div style={{ height: 250 }}>
+//                   <Bar
+//                     data={barChartData}
+//                     options={{
+//                       responsive: true,
+//                       maintainAspectRatio: false,
+//                       plugins: { legend: { display: false } },
+//                       scales: { y: { beginAtZero: true } },
+//                     }}
+//                   />
+//                 </div>
+//               </div>
+//             </div>
+//           </div>
+//           <div className="col-md-4">
+//             <div className="card shadow-sm">
+//               <div className="card-body">
+//                 <h6 className="fw-semibold text-secondary mb-3">
+//                   User Distribution
+//                 </h6>
+//                 <div style={{ height: 250 }}>
+//                   <Pie
+//                     data={pieChartData}
+//                     options={{ responsive: true, maintainAspectRatio: false }}
+//                   />
+//                 </div>
+//               </div>
+//             </div>
+//           </div>
+//         </div>
+
+//         {/* Export Button */}
+//         <div className="text-end">
+//           <button onClick={handleExportCSV} className="btn btn-outline-dark">
+//             <Download size={16} className="me-2" /> Export as CSV
+//           </button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
+
+// const StatCard = ({
+//   title,
+//   icon,
+//   count,
+//   link,
+//   color,
+//   textColor,
+//   borderColor,
+// }) => (
+//   <div className="col-6 col-md-3">
+//     <div
+//       className={`card ${color} border ${borderColor} rounded shadow-sm h-100`}
+//     >
+//       <div className="card-body d-flex flex-column justify-content-between">
+//         <div className="d-flex justify-content-between align-items-center mb-2">
+//           <div className={`p-2 rounded ${textColor}`}>{icon}</div>
+//           <small className={textColor}>{title}</small>
+//         </div>
+//         <h3 className="fw-bold text-dark">{count}</h3>
+//         <Link
+//           to={link}
+//           className={`text-decoration-none d-flex justify-content-between align-items-center ${textColor}`}
+//         >
+//           <span className="text-sm">View Details</span>
+//           <ChevronRight size={16} />
+//         </Link>
+//       </div>
+//     </div>
+//   </div>
+// );
+
+// export default DashboardHome;
+
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { LayoutGrid, Map, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Users, CheckCircle, XCircle, Download } from "lucide-react";
 import Sidebar from "./components/slidebar";
 import defaultimage from "./Assets/ProfilePicture.jpg";
-import { auth } from "./firebase";
+import { auth, db } from "./firebase";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { Bar, Pie } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  Tooltip,
+  Legend,
+  ArcElement,
+} from "chart.js";
 import "./App.css";
+
+ChartJS.register(
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  Tooltip,
+  Legend,
+  ArcElement
+);
 
 const DashboardHome = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(auth.currentUser);
   const [displayName, setDisplayName] = useState("");
   const [photoURL, setPhotoURL] = useState(defaultimage);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [orgUsers, setOrgUsers] = useState(0);
+  const [declinedRequests, setDeclinedRequests] = useState(0);
+  const [approvedRequests, setApprovedRequests] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [lastFetchTime, setLastFetchTime] = useState(0);
+
+  // Cache duration - 5 minutes
+  const CACHE_DURATION = 5 * 60 * 1000;
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
       if (currentUser) {
-        setUser(currentUser);
         setDisplayName(
           currentUser.displayName || currentUser.email?.split("@")[0]
         );
@@ -23,8 +353,105 @@ const DashboardHome = () => {
       }
     });
 
+    const now = Date.now();
+    if (now - lastFetchTime > CACHE_DURATION) {
+      fetchCounts();
+      setLastFetchTime(now);
+    }
+
     return () => unsubscribe();
-  }, []);
+  }, [lastFetchTime]);
+
+  const fetchCounts = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Execute all queries in parallel
+      const [visitorSnap, orgSnap, declinedSnap, approvedSnap] =
+        await Promise.all([
+          getDocs(
+            query(collection(db, "users"), where("role", "==", "visitor"))
+          ),
+          getDocs(
+            query(collection(db, "users"), where("role", "==", "organizer"))
+          ),
+          getDocs(
+            query(
+              collection(db, "requestforanmap"),
+              where("status", "==", "declined")
+            )
+          ),
+          getDocs(
+            query(
+              collection(db, "requestforanmap"),
+              where("status", "==", "accepted")
+            )
+          ),
+        ]);
+
+      const validVisitors = visitorSnap.docs.filter(
+        (doc) => doc.data().username
+      );
+
+      setTotalUsers(validVisitors.length);
+      setOrgUsers(orgSnap.size);
+      setDeclinedRequests(declinedSnap.size);
+      setApprovedRequests(approvedSnap.size);
+    } catch (err) {
+      console.error("Firestore error:", err);
+      setError("Failed to load dashboard data. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const barChartData = {
+    labels: ["Visitors", "Organizers", "Declined", "Approved"],
+    datasets: [
+      {
+        label: "Count",
+        data: [totalUsers, orgUsers, declinedRequests, approvedRequests],
+        backgroundColor: ["#4fc3f7", "#1a237e", "#f44336", "#66bb6a"],
+        borderRadius: 4,
+        barThickness: 30,
+      },
+    ],
+  };
+
+  const pieChartData = {
+    labels: ["Visitors", "Organizers"],
+    datasets: [
+      {
+        data: [totalUsers, orgUsers],
+        backgroundColor: ["#4fc3f7", "#1a237e"],
+        borderWidth: 0,
+      },
+    ],
+  };
+
+  const handleExportCSV = () => {
+    const headers = ["Metric", "Count"];
+    const data = [
+      ["Total Visitors", totalUsers],
+      ["Organizers", orgUsers],
+      ["Declined Requests", declinedRequests],
+      ["Approved Requests", approvedRequests],
+    ];
+
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += headers.join(",") + "\n";
+    data.forEach((row) => {
+      csvContent += row.map((item) => `"${item}"`).join(",") + "\n";
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "dashboard-data.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleLogout = async () => {
     try {
@@ -35,133 +462,168 @@ const DashboardHome = () => {
     }
   };
 
-  async function sendOneSignalNotificationFromBrowser(
-    appId,
-    apiKey,
-    message,
-    heading,
-    data,
-    playerIds
-  ) {
-    const payload = {
-      app_id: appId,
-      contents: { en: message },
-    };
-
-    if (heading) payload.headings = { en: heading };
-    if (data) payload.data = data;
-    if (playerIds) payload.include_player_ids = playerIds;
-    else payload.included_segments = ["All"];
-
-    try {
-      const response = await fetch(
-        "https://onesignal.com/api/v1/notifications",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json; charset=utf-8",
-            Authorization: `Basic ${apiKey}`,
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-      return await response.json();
-    } catch (error) {
-      console.error("Error sending notification:", error);
-    }
-  }
+  const handleRefresh = () => {
+    fetchCounts();
+    setLastFetchTime(Date.now());
+  };
 
   return (
-    <div className="container-fluid vh-100 bg-light">
-      <div className="row h-100">
-        <Sidebar handleLogout={handleLogout} />
+    <div className="d-flex flex-column flex-md-row min-vh-100">
+      <Sidebar handleLogout={handleLogout} />
 
-        <main className="col-md-9 col-lg-10 p-4">
-          <header className="d-flex justify-content-between align-items-center p-3 bg-white shadow rounded mb-4">
-            <div>
-              <h4 className="fw-bold mb-1">Welcome Back,</h4>
-              <span
-                className="text-primary fw-semibold"
-                style={{ textTransform: "capitalize" }}
-              >
-                {displayName}
-              </span>
+      <div className="flex-grow-1 p-4 bg-light">
+        {/* Header */}
+        <header className="d-flex justify-content-between align-items-center bg-white shadow-sm p-3 rounded mb-4">
+          <div>
+            <h4 className="fw-bold text-dark mb-0">Dashboard Overview</h4>
+            {error && (
+              <div className="alert alert-danger py-1 mt-2 mb-0">
+                {error}
+                <button
+                  onClick={handleRefresh}
+                  className="btn btn-link btn-sm p-0 ms-2"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="d-flex align-items-center">
+            <span className="me-3 text-dark fw-medium">{displayName}</span>
+            <img
+              src={photoURL}
+              alt="User"
+              className="rounded-circle border border-white shadow-sm"
+              style={{ width: 40, height: 40, objectFit: "cover" }}
+            />
+          </div>
+        </header>
+
+        {loading ? (
+          <div className="text-center py-5">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading...</span>
             </div>
-            <div className="d-flex align-items-center">
-              <span className="me-3">{displayName}</span>
-              <img
-                src={photoURL}
-                alt="User"
-                className="rounded-circle border"
-                style={{ width: 45, height: 45, objectFit: "cover" }}
+            <p className="mt-2">Loading dashboard data...</p>
+          </div>
+        ) : (
+          <>
+            {/* Stat Cards */}
+            <div className="row g-3 mb-4">
+              <StatCard
+                title="Visitors"
+                icon={<Users size={20} />}
+                count={totalUsers}
+                color="bg-info-subtle"
+                textColor="text-info"
+                borderColor="border-info"
+              />
+              <StatCard
+                title="Organizers"
+                icon={<Users size={20} />}
+                count={orgUsers}
+                color="bg-primary-subtle"
+                textColor="text-primary"
+                borderColor="border-primary"
+              />
+              <StatCard
+                title="Declined Requests"
+                icon={<XCircle size={20} />}
+                count={declinedRequests}
+                color="bg-danger-subtle"
+                textColor="text-danger"
+                borderColor="border-danger"
+              />
+              <StatCard
+                title="Approved Requests"
+                icon={<CheckCircle size={20} />}
+                count={approvedRequests}
+                color="bg-success-subtle"
+                textColor="text-success"
+                borderColor="border-success"
               />
             </div>
-          </header>
 
-          <div className="row g-4">
-            {/* Total Users */}
-            <div className="col-md-4">
-              <div className="card border-0 shadow-sm h-100 hover-shadow">
-                <div className="card-body">
-                  <div className="d-flex align-items-center mb-2">
-                    <Users size={40} className="text-primary me-3" />
-                    <h5 className="mb-0">Total Users</h5>
+            {/* Analytics Section */}
+            <div className="row g-4 mb-4">
+              <div className="col-md-8">
+                <div className="card shadow-sm">
+                  <div className="card-body">
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                      <h6 className="fw-semibold text-secondary mb-0">
+                        Activity Summary
+                      </h6>
+                      <button
+                        onClick={handleRefresh}
+                        className="btn btn-sm btn-outline-secondary"
+                      >
+                        Refresh Data
+                      </button>
+                    </div>
+                    <div style={{ height: 250 }}>
+                      <Bar
+                        data={barChartData}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: { legend: { display: false } },
+                          scales: { y: { beginAtZero: true } },
+                        }}
+                      />
+                    </div>
                   </div>
-                  <p className="text-muted">
-                    View and manage users with Student or Visitor .
-                  </p>
-                  <div className="d-flex gap-2">
-                    <Link to="/users" className="btn btn-primary flex-grow-1">
-                      View Users
-                    </Link>
+                </div>
+              </div>
+              <div className="col-md-4">
+                <div className="card shadow-sm">
+                  <div className="card-body">
+                    <h6 className="fw-semibold text-secondary mb-3">
+                      User Distribution
+                    </h6>
+                    <div style={{ height: 250 }}>
+                      <Pie
+                        data={pieChartData}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* New Map Requests */}
-            <div className="col-md-4">
-              <div className="card border-0 shadow-sm h-100">
-                <div className="card-body">
-                  <div className="d-flex align-items-center mb-2">
-                    <Map size={40} className="text-success me-3" />
-                    <h5 className="mb-0">New Map Requests</h5>
-                  </div>
-                  <p className="text-muted">
-                    Review and approve new building map submissions.
-                  </p>
-                  <Link to="/map-requests" className="btn btn-success w-100">
-                    Manage Requests
-                  </Link>
-                </div>
-              </div>
+            {/* Export Button */}
+            <div className="text-end">
+              <button
+                onClick={handleExportCSV}
+                className="btn btn-outline-dark"
+              >
+                <Download size={16} className="me-2" /> Export as CSV
+              </button>
             </div>
-
-            {/* Organizational Users */}
-            <div className="col-md-4">
-              <div className="card border-0 shadow-sm h-100">
-                <div className="card-body">
-                  <div className="d-flex align-items-center mb-2">
-                    <Users size={40} className="text-warning me-3" />
-                    <h5 className="mb-0">Organizational Users</h5>
-                  </div>
-                  <p className="text-muted">
-                    View and manage users with organizer roles.
-                  </p>
-                  <Link
-                    to="/OrganizationalUser"
-                    className="btn btn-warning w-100"
-                  >
-                    View Organizers
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </main>
+          </>
+        )}
       </div>
     </div>
   );
 };
+
+const StatCard = ({ title, icon, count, color, textColor, borderColor }) => (
+  <div className="col-6 col-md-3">
+    <div
+      className={`card ${color} border ${borderColor} rounded shadow-sm h-100`}
+    >
+      <div className="card-body d-flex flex-column justify-content-between">
+        <div className="d-flex justify-content-between align-items-center mb-2">
+          <div className={`p-2 rounded ${textColor}`}>{icon}</div>
+          <small className={textColor}>{title}</small>
+        </div>
+        <h3 className="fw-bold text-dark">{count}</h3>
+      </div>
+    </div>
+  </div>
+);
 
 export default DashboardHome;

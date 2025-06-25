@@ -107,7 +107,6 @@ const Users = () => {
             <thead className="table-dark" style={{ background: "#044EB0" }}>
               <tr>
                 <th>Profile</th>
-
                 <th>Username</th>
                 <th>Email</th>
                 <th>Remove</th>

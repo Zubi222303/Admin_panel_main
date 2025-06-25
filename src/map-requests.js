@@ -8,6 +8,9 @@ import {
   query,
   onSnapshot,
   deleteDoc,
+  addDoc,
+  serverTimestamp,
+  where,
 } from "firebase/firestore";
 import { db, auth } from "./firebase";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -30,13 +33,32 @@ const ManageRequests = () => {
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
 
-  // OneSignal notification function
-  const sendOneSignalNotification = async (message, heading) => {
+  const sendOneSignalNotification = async (message, heading, options = {}) => {
     const payload = {
-      app_id: "bc188d2c-60cb-4bca-8e15-07a23c0e4bde",
+      app_id: "dcf7bc92-264d-445e-878e-c8ca383de55f",
       contents: { en: message },
       headings: { en: heading },
       included_segments: ["All"],
+      data: {
+        type: options.type || "info",
+        timestamp: new Date().toISOString(),
+        ...(options.url && { url: options.url }),
+      },
+      ...(options.url && { url: options.url }),
+      ...(options.imageUrl && {
+        big_picture: options.imageUrl,
+        ios_attachments: { id: options.imageUrl },
+      }),
+      ...(options.actionButton &&
+        options.actionUrl && {
+          buttons: [
+            {
+              id: "action_button",
+              text: options.actionButton,
+              url: options.actionUrl,
+            },
+          ],
+        }),
     };
 
     try {
@@ -47,14 +69,126 @@ const ManageRequests = () => {
           headers: {
             "Content-Type": "application/json; charset=utf-8",
             Authorization:
-              "Basic os_v2_app_xqmi2ldaznf4vdqva6rdydsl32wpoxdkx2zuypfzh4enjmpeivo3ernm3kwnrpeuecrxu2n2kihddyocrw5s7qtzy5uie2tso4ufo3y",
+              "Basic os_v2_app_3t33zergjvcf5b4ozdfdqppfl6yo632qwdie7emcna5rctehk5cxi3f6p34n4mhb44cxjurpzbr3ebn27ooennublkbhnxergd7uzpy",
           },
           body: JSON.stringify(payload),
         }
       );
-      return await response.json();
+      const result = await response.json();
+      if (!response.ok)
+        throw new Error(result.errors?.[0] || "Failed to send notification");
+      return result;
     } catch (error) {
       console.error("Error sending notification:", error);
+      throw error;
+    }
+  };
+
+  const saveNotificationToDatabase = async (
+    userId,
+    message,
+    heading,
+    type = "info"
+  ) => {
+    try {
+      const notificationData = {
+        userId: userId,
+        message: message,
+        heading: heading,
+        type: type,
+        read: false,
+        createdAt: serverTimestamp(),
+        timestamp: new Date().toISOString(),
+      };
+
+      await addDoc(collection(db, "notifications"), notificationData);
+      console.log("Notification saved to database successfully");
+    } catch (error) {
+      console.error("Error saving notification to database:", error);
+      throw error;
+    }
+  };
+
+  const sendTargetedNotification = async (
+    userId,
+    message,
+    heading,
+    options = {}
+  ) => {
+    try {
+      // Query users collection to find document where uniqueid equals userId
+      const usersQuery = query(
+        collection(db, "users"),
+        where("uniqueid", "==", userId)
+      );
+      const userSnapshot = await getDocs(usersQuery);
+
+      if (userSnapshot.empty) {
+        throw new Error("User not found");
+      }
+
+      // Get the first (and should be only) matching document
+      const userDoc = userSnapshot.docs[0];
+      const userData = userDoc.data();
+
+      // Save notification to database first
+      await saveNotificationToDatabase(userId, message, heading, options.type);
+
+      // Send OneSignal notification - you can target by external_user_id if you have it set up
+      const payload = {
+        app_id: "dcf7bc92-264d-445e-878e-c8ca383de55f",
+        contents: { en: message },
+        headings: { en: heading },
+        // Target specific user by external_user_id (if you have this set up in OneSignal)
+        include_external_user_ids: [userId],
+        // Fallback to all users if external_user_id is not set up
+        ...(userData.oneSignalPlayerId
+          ? { include_player_ids: [userData.oneSignalPlayerId] }
+          : { included_segments: ["All"] }),
+        data: {
+          type: options.type || "info",
+          timestamp: new Date().toISOString(),
+          userId: userId,
+          ...(options.url && { url: options.url }),
+        },
+        ...(options.url && { url: options.url }),
+        ...(options.imageUrl && {
+          big_picture: options.imageUrl,
+          ios_attachments: { id: options.imageUrl },
+        }),
+        ...(options.actionButton &&
+          options.actionUrl && {
+            buttons: [
+              {
+                id: "action_button",
+                text: options.actionButton,
+                url: options.actionUrl,
+              },
+            ],
+          }),
+      };
+
+      const response = await fetch(
+        "https://onesignal.com/api/v1/notifications",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            Authorization:
+              "Basic os_v2_app_3t33zergjvcf5b4ozdfdqppfl6yo632qwdie7emcna5rctehk5cxi3f6p34n4mhb44cxjurpzbr3ebn27ooennublkbhnxergd7uzpy",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const result = await response.json();
+      if (!response.ok)
+        throw new Error(result.errors?.[0] || "Failed to send notification");
+
+      console.log("Targeted notification sent successfully:", result);
+      return result;
+    } catch (error) {
+      console.error("Error sending targeted notification:", error);
       throw error;
     }
   };
@@ -129,35 +263,50 @@ const ManageRequests = () => {
     try {
       setLoading(true);
       const buildingRef = doc(db, "requestforanmap", building.id);
-      await updateDoc(buildingRef, { status: "approved" });
 
-      const userRef = doc(db, "users", building.userId);
-      const userSnap = await getDoc(userRef);
+      // Change status to "accepted" instead of "approved"
+      await updateDoc(buildingRef, { status: "accepted" });
 
-      if (!userSnap.exists()) {
+      // Query users collection to find document where uniqueid equals building.userId
+      const usersQuery = query(
+        collection(db, "users"),
+        where("uniqueid", "==", building.userId)
+      );
+      const userSnapshot = await getDocs(usersQuery);
+
+      if (userSnapshot.empty) {
         throw new Error("User document not found");
       }
 
-      const userData = userSnap.data();
+      // Get the first (and should be only) matching document
+      const userDoc = userSnapshot.docs[0];
+      const userData = userDoc.data();
       const userEmail = userData.email;
       const userName = userData.username;
 
-      if (userEmail) {
-        await sendApprovalEmail(userEmail, userName);
-      }
+      // Send email notification
+      if (userEmail) await sendApprovalEmail(userEmail, userName);
 
-      // Send broadcast notification
-      await sendOneSignalNotification(
-        `Building "${building.buildingName}" has been approved`,
-        "New Building Approved"
+      // Send targeted notification to specific user
+      await sendTargetedNotification(
+        building.userId,
+        `Your building request "${building.buildingName}" has been accepted! our team will connect with you via email.`,
+        "Building Request Accepted",
+        {
+          type: "approval",
+          url: `https://yourdomain.com/buildings/${building.id}`,
+          imageUrl: "https://yourdomain.com/images/approved-banner.jpg",
+          actionButton: "View Details",
+          actionUrl: `https://yourdomain.com/buildings/${building.id}`,
+        }
       );
 
-      setSuccessMessage("Request approved successfully!");
+      setSuccessMessage("Request accepted successfully and notification sent!");
       closeModal();
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error) {
-      console.error("Error approving request:", error);
-      setError(error.message || "Error approving request");
+      console.error("Error accepting request:", error);
+      setError(error.message || "Error accepting request");
     } finally {
       setLoading(false);
     }
@@ -169,27 +318,36 @@ const ManageRequests = () => {
       const buildingRef = doc(db, "requestforanmap", building.id);
       await updateDoc(buildingRef, { status: "declined" });
 
-      const userRef = doc(db, "users", building.userId);
-      const userSnap = await getDoc(userRef);
+      // Query users collection to find document where uniqueid equals building.userId
+      const usersQuery = query(
+        collection(db, "users"),
+        where("uniqueid", "==", building.userId)
+      );
+      const userSnapshot = await getDocs(usersQuery);
 
-      if (!userSnap.exists()) {
+      if (userSnapshot.empty) {
         throw new Error("User document not found");
       }
 
-      const userData = userSnap.data();
+      // Get the first (and should be only) matching document
+      const userDoc = userSnapshot.docs[0];
+      const userData = userDoc.data();
       const userEmail = userData.email;
 
-      if (userEmail) {
-        await sendDeclineEmail(userEmail, building.buildingName);
-      }
+      // Send email notification
+      if (userEmail) await sendDeclineEmail(userEmail, building.buildingName);
 
-      // Send broadcast notification
-      await sendOneSignalNotification(
-        `Building "${building.buildingName}" request has been declined`,
-        "Building Request Declined"
+      // Send targeted notification to specific user
+      await sendTargetedNotification(
+        building.userId,
+        `Your building request "${building.buildingName}" has been declined. Please review the requirements and submit a new request if needed.`,
+        "Building Request Declined",
+        {
+          type: "decline",
+        }
       );
 
-      setSuccessMessage("Request declined successfully!");
+      setSuccessMessage("Request declined successfully and notification sent!");
       closeModal();
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error) {

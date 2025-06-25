@@ -1,10 +1,17 @@
-import React, { useState, useEffect } from "react";
+"use client";
+
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { User, Mail, Lock, Camera } from "lucide-react";
 import Sidebar from "./components/slidebar";
 import defaultimage from "./Assets/ProfilePicture.jpg";
 import { auth, storage } from "./firebase";
-import { updateProfile, updateEmail } from "firebase/auth";
+import {
+  updateProfile,
+  updateEmail,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+} from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import "./App.css";
 
@@ -20,6 +27,7 @@ const AdminProfile = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [password, setPassword] = useState("");
+  const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
 
   const handleLogout = async () => {
@@ -35,6 +43,10 @@ const AdminProfile = () => {
     const file = e.target.files[0];
     if (!file || !user) return;
 
+    // Store the actual file for upload
+    setImageFile(file);
+
+    // Create preview
     const reader = new FileReader();
     reader.onloadend = () => {
       setImagePreview(reader.result);
@@ -42,31 +54,33 @@ const AdminProfile = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleImageUpload = async () => {
-    if (!imagePreview || !user) {
-      setLoading(false);
-      return;
+  const uploadImage = async () => {
+    if (!imageFile || !user) return null;
+
+    try {
+      const storageRef = ref(
+        storage,
+        `profile_images/${user.uid}_${Date.now()}`
+      );
+      const snapshot = await uploadBytes(storageRef, imageFile);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      return downloadURL;
+    } catch (error) {
+      console.error("Image upload error:", error);
+      throw new Error("Failed to upload image: " + error.message);
+    }
+  };
+
+  const reauthenticateUser = async () => {
+    if (!password || !user?.email) {
+      throw new Error("Password is required for profile updates");
     }
 
     try {
-      setLoading(true);
-      const response = await fetch(imagePreview);
-      const blob = await response.blob();
-
-      const storageRef = ref(storage, `profileImage/${user.uid}`);
-      await uploadBytes(storageRef, blob);
-      const downloadURL = await getDownloadURL(storageRef);
-
-      await updateProfile(user, { photoURL: downloadURL });
-      setPhotoURL(downloadURL);
-      setImagePreview(null);
-      setSuccess("Profile picture updated successfully!");
-      setError(null);
+      const credential = EmailAuthProvider.credential(user.email, password);
+      await reauthenticateWithCredential(user, credential);
     } catch (error) {
-      setError("Failed to update profile picture: " + error.message);
-      console.error(error);
-    } finally {
-      setLoading(false);
+      throw new Error("Authentication failed. Please check your password.");
     }
   };
 
@@ -79,21 +93,70 @@ const AdminProfile = () => {
     setSuccess(null);
 
     try {
-      if (displayName !== user.displayName) {
-        await updateProfile(user, { displayName });
+      // Check if any changes were made
+      const hasDisplayNameChange = displayName !== user.displayName;
+      const hasEmailChange = email !== user.email;
+      const hasImageChange = imageFile !== null;
+
+      if (!hasDisplayNameChange && !hasEmailChange && !hasImageChange) {
+        setError("No changes detected");
+        setLoading(false);
+        return;
       }
 
-      if (email !== user.email) {
+      // Reauthenticate if making sensitive changes
+      if (hasEmailChange || hasImageChange || hasDisplayNameChange) {
+        await reauthenticateUser();
+      }
+
+      let newPhotoURL = photoURL;
+
+      // Upload image first if there's a new image
+      if (hasImageChange) {
+        newPhotoURL = await uploadImage();
+      }
+
+      // Update profile with all changes
+      const updates = {};
+      if (hasDisplayNameChange) updates.displayName = displayName;
+      if (hasImageChange) updates.photoURL = newPhotoURL;
+
+      if (Object.keys(updates).length > 0) {
+        await updateProfile(user, updates);
+      }
+
+      // Update email separately if changed
+      if (hasEmailChange) {
         await updateEmail(user, email);
       }
 
+      // Update local state
+      if (hasImageChange) {
+        setPhotoURL(newPhotoURL);
+        setImageFile(null);
+        setImagePreview(null);
+      }
+
       setSuccess("Profile updated successfully!");
+      setIsEditing(false);
+      setPassword("");
     } catch (error) {
-      setError("Failed to update profile: " + error.message);
-      console.error(error);
+      console.error("Profile update error:", error);
+      setError(error.message || "Failed to update profile");
     } finally {
       setLoading(false);
     }
+  };
+
+  const cancelEdit = () => {
+    setIsEditing(false);
+    setDisplayName(user?.displayName || "");
+    setEmail(user?.email || "");
+    setImageFile(null);
+    setImagePreview(null);
+    setPassword("");
+    setError(null);
+    setSuccess(null);
   };
 
   return (
@@ -109,7 +172,7 @@ const AdminProfile = () => {
                 {user?.displayName || user?.email?.split("@")[0]}
               </span>
               <img
-                src={photoURL}
+                src={imagePreview || photoURL}
                 alt="User Profile"
                 className="rounded-circle border shadow-sm"
                 style={{ width: "40px", height: "40px", objectFit: "cover" }}
@@ -130,42 +193,34 @@ const AdminProfile = () => {
                       src={imagePreview || photoURL}
                       alt="Profile"
                       className="rounded-circle border w-100 h-100 object-cover shadow"
-                      style={{ border: "3px solid #f8f9fa" }}
+                      style={{
+                        border: "3px solid #f8f9fa",
+                        objectFit: "cover",
+                      }}
                     />
-                    <label
-                      htmlFor="profileImage"
-                      className="position-absolute bottom-0 end-0 bg-primary text-white rounded-circle p-2 cursor-pointer shadow"
-                      style={{ width: "45px", height: "45px" }}
-                      title="Change photo"
-                    >
-                      <Camera size={20} />
-                      <input
-                        id="profileImage"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="d-none"
-                        disabled={loading}
-                      />
-                    </label>
+                    {isEditing && (
+                      <label
+                        htmlFor="profileImage"
+                        className="position-absolute bottom-0 end-0 bg-primary text-white rounded-circle p-2 cursor-pointer shadow"
+                        style={{
+                          width: "45px",
+                          height: "45px",
+                          cursor: "pointer",
+                        }}
+                        title="Change photo"
+                      >
+                        <Camera size={20} />
+                        <input
+                          id="profileImage"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageChange}
+                          className="d-none"
+                          disabled={loading}
+                        />
+                      </label>
+                    )}
                   </div>
-
-                  {imagePreview && (
-                    <button
-                      onClick={handleImageUpload}
-                      className="btn btn-primary btn-sm mt-2 mb-3"
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <>
-                          <span className="spinner-border spinner-border-sm me-2"></span>
-                          Uploading...
-                        </>
-                      ) : (
-                        "Update Profile Picture"
-                      )}
-                    </button>
-                  )}
 
                   <h4 className="mb-1 text-dark">
                     {user?.displayName || "Admin User"}
@@ -191,7 +246,9 @@ const AdminProfile = () => {
                     </h5>
                     <button
                       className="btn btn-sm btn-outline-primary"
-                      onClick={() => setIsEditing(!isEditing)}
+                      onClick={() =>
+                        isEditing ? cancelEdit() : setIsEditing(true)
+                      }
                       disabled={loading}
                     >
                       {isEditing ? (
@@ -246,7 +303,7 @@ const AdminProfile = () => {
                         id="displayName"
                         value={displayName}
                         onChange={(e) => setDisplayName(e.target.value)}
-                        disabled={!isEditing}
+                        disabled={!isEditing || loading}
                       />
                     </div>
 
@@ -264,7 +321,7 @@ const AdminProfile = () => {
                         id="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        disabled={!isEditing}
+                        disabled={!isEditing || loading}
                       />
                     </div>
 
@@ -285,6 +342,8 @@ const AdminProfile = () => {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder="Enter current password to confirm changes"
+                            disabled={loading}
+                            required
                           />
                         </div>
 

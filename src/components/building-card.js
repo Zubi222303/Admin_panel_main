@@ -3,20 +3,18 @@ import { FaTrash, FaSpinner, FaRegCalendarAlt } from "react-icons/fa";
 const styles = {
   card: {
     backgroundColor: "#fff",
-    borderRadius: "8px",
+    borderRadius: "6px",
     overflow: "hidden",
-    boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-    height: "100%",
+    boxShadow: "0 2px 4px rgba(0,0,0,0.08)",
+    height: "auto",
     display: "flex",
     flexDirection: "column",
     transition: "transform 0.2s",
-    ":hover": {
-      transform: "translateY(-5px)",
-    },
+    maxWidth: "300px",
   },
   cardHeader: {
     background: "linear-gradient(135deg, #044EB0 0%, #007BFF 100%)",
-    padding: "15px 16px",
+    padding: "8px 12px",
     color: "white",
     display: "flex",
     justifyContent: "space-between",
@@ -24,14 +22,14 @@ const styles = {
   },
   buildingName: {
     fontWeight: "bold",
-    fontSize: "16px",
+    fontSize: "14px",
     margin: 0,
     color: "white",
   },
   statusBadge: {
-    padding: "4px 12px",
-    borderRadius: "20px",
-    fontSize: "12px",
+    padding: "2px 8px",
+    borderRadius: "12px",
+    fontSize: "10px",
     fontWeight: "bold",
     textTransform: "uppercase",
     marginLeft: "8px",
@@ -40,13 +38,10 @@ const styles = {
     backgroundColor: "transparent",
     border: "none",
     color: "white",
-    fontSize: 16,
+    fontSize: "14px",
     cursor: "pointer",
     marginLeft: "8px",
-    padding: "4px",
-    ":hover": {
-      color: "#ffcccc",
-    },
+    padding: "2px",
   },
   statusPending: {
     backgroundColor: "#FFC107",
@@ -67,17 +62,13 @@ const styles = {
   },
   pdfPreview: {
     width: "100%",
-    height: "150px",
+    height: "100px",
     backgroundColor: "#f8f9fa",
     overflow: "hidden",
   },
   cardFooter: {
-    // background: "linear-gradient(#020024,#090979,#00D4FF 100%)",
     background: "linear-gradient(135deg, #044EB0 0%, #007BFF 100%)",
-
-    padding: "4px 16px",
-    borderTop: "1px solid #eee",
-    cursor: "pointer",
+    padding: "4px 12px",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
@@ -85,26 +76,23 @@ const styles = {
   footerInfoRow: {
     display: "flex",
     alignItems: "center",
-
     gap: "6px",
   },
   dateIcon: {
     color: "white",
-    fontSize: "18px",
+    fontSize: "14px",
   },
-
   footerLeft: {
     display: "flex",
     alignItems: "center",
   },
-
   footerInfo: {
     display: "flex",
     flexDirection: "column",
   },
   infoText: {
     color: "white",
-    fontSize: "12px",
+    fontSize: "10px",
   },
 };
 
@@ -136,8 +124,8 @@ const BuildingCard = ({ building, onClick, onDelete, loading }) => {
           <div style={styles.pdfPreview}>
             <iframe
               src={building.floorPlans[0]}
-              width="110%"
-              height="210"
+              width="100%"
+              height="100"
               title="Building Floor Plan"
               style={{
                 border: "none",

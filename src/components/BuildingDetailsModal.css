@@ -1,0 +1,89 @@
+.custom-modal-header {
+  background: linear-gradient(135deg, #044eb0, #007bff);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-bottom: none;
+}
+
+.custom-modal-header .modal-title {
+  font-weight: 600;
+  font-size: 1.5rem;
+}
+
+.custom-modal-body {
+  padding: 2rem;
+  background-color: #f9fafd;
+}
+
+.custom-modal-footer {
+  background-color: #f1f3f5;
+  border-top: none;
+  padding: 1rem 2rem;
+  justify-content: space-between;
+}
+
+.info-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.info-section {
+  flex: 1;
+  min-width: 280px;
+}
+
+.card-style {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.section-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #044eb0;
+}
+
+.info-line {
+  font-size: 0.95rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+}
+
+.info-icon {
+  margin-right: 0.5rem;
+  color: #007bff;
+}
+
+.pdf-container {
+  border: 1px solid #dee2e6;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.pdf-iframe {
+  border: none;
+  border-radius: 10px;
+}
+
+.spinner-icon {
+  animation: spin 1s linear infinite;
+}
+
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.action-btn {
+  min-width: 110px;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+

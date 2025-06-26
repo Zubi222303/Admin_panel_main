@@ -12,6 +12,7 @@ const OrganizationalUser = () => {
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchVisible, setSearchVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   async function handleLogout() {
     try {
@@ -50,6 +51,8 @@ const OrganizationalUser = () => {
         setUsers(usersData);
       } catch (error) {
         console.error("Error fetching organizers:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -114,7 +117,13 @@ const OrganizationalUser = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.length > 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan="5" className="text-center">
+                    Loading...
+                  </td>
+                </tr>
+              ) : filteredUsers.length > 0 ? (
                 filteredUsers.map((user) => (
                   <tr key={user.id}>
                     <td>

@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import {
   LayoutGrid,
@@ -6,186 +7,154 @@ import {
   MapPin,
   LogOut,
   User,
+  Menu,
+  X,
 } from "lucide-react";
 import logo from "../Assets/Logowhite.png";
+import "./Sidebar.css";
 
 const Sidebar = ({ handleLogout }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Close sidebar when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const sidebar = document.querySelector(".sidebar-custom");
+      const mobileHeader = document.querySelector(".mobile-header");
+
+      if (
+        isOpen &&
+        !sidebar.contains(event.target) &&
+        !mobileHeader.contains(event.target)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    // Close sidebar when resizing to desktop
+    const handleResize = () => {
+      if (window.innerWidth >= 768) setIsOpen(false);
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [isOpen]);
+
   return (
-    <nav
-      className="col-md-3 col-lg-2 d-md-block text-white p-0 manage-nav position-sticky top-0"
-      style={{
-        backgroundColor: "#1a237e",
-        background: "linear-gradient(180deg, #1a237e 0%, #283593 100%)",
-        boxShadow: "4px 0 10px rgba(0, 0, 0, 0.1)",
-        height: "100vh",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      <div className="p-3" style={{ flex: "1 1 auto", overflowY: "auto" }}>
-        <div className="text-center mb-3">
-          <img
-            src={logo}
-            alt="Logo"
-            style={{
-              width: "80px",
-              transition: "transform 0.3s ease",
-            }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.transform = "scale(1.05)")
-            }
-            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-          />
-        </div>
-
-        <div className="sidebar-divider mb-3"></div>
-
-        <ul className="nav flex-column">
-          <li className="nav-item nav-item-custom">
-            <NavLink
-              to="/dashboard"
-              className={({ isActive }) =>
-                `nav-link d-flex align-items-center p-2 rounded text-white ${
-                  isActive ? "active-nav" : "hover-nav"
-                }`
-              }
-            >
-              <LayoutGrid className="me-2" size={20} />
-              <span>Dashboard</span>
-            </NavLink>
-          </li>
-
-          <li className="nav-item nav-item-custom">
-            <NavLink
-              to="/adminProfile"
-              className={({ isActive }) =>
-                `nav-link d-flex align-items-center p-2 rounded text-white ${
-                  isActive ? "active-nav" : "hover-nav"
-                }`
-              }
-            >
-              <UsersIcon className="me-2" size={20} />
-              <span>User Profile</span>
-            </NavLink>
-          </li>
-
-          <li className="nav-item nav-item-custom">
-            <NavLink
-              to="/users"
-              className={({ isActive }) =>
-                `nav-link d-flex align-items-center p-2 rounded text-white ${
-                  isActive ? "active-nav" : "hover-nav"
-                }`
-              }
-            >
-              <User className="me-2" size={20} />
-              <span>Visitors</span>
-            </NavLink>
-          </li>
-
-          <li className="nav-item nav-item-custom">
-            <NavLink
-              to="/OrganizationalUser"
-              className={({ isActive }) =>
-                `nav-link d-flex align-items-center p-2 rounded text-white ${
-                  isActive ? "active-nav" : "hover-nav"
-                }`
-              }
-            >
-              <User className="me-2" size={20} />
-              <span>Organizers</span>
-            </NavLink>
-          </li>
-
-          <li className="nav-item nav-item-custom">
-            <NavLink
-              to="/map-requests"
-              className={({ isActive }) =>
-                `nav-link d-flex align-items-center p-2 rounded text-white ${
-                  isActive ? "active-nav" : "hover-nav"
-                }`
-              }
-            >
-              <MapPin className="me-2" size={20} />
-              <span>Map Request</span>
-            </NavLink>
-          </li>
-
-          <li className="nav-item nav-item-custom">
-            <NavLink
-              to="/send-notification-form"
-              className={({ isActive }) =>
-                `nav-link d-flex align-items-center p-2 rounded text-white ${
-                  isActive ? "active-nav" : "hover-nav"
-                }`
-              }
-            >
-              <Bell className="me-2" size={20} />
-              <span>Notifications</span>
-            </NavLink>
-          </li>
-        </ul>
-      </div>
-
-      <div className="p-3">
-        <div className="sidebar-divider mb-3"></div>
+    <>
+      {/* Mobile top bar */}
+      <div className="mobile-header d-md-none">
+        <img src={logo} alt="Logo" height={40} />
         <button
-          className="btn w-100 d-flex align-items-center justify-content-center py-2"
-          onClick={handleLogout}
-          style={{
-            transition: "all 0.3s ease",
-            backgroundColor: "#f44336",
-            color: "white",
-            border: "none",
-            fontSize: "0.875rem",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = "#d32f2f";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "#f44336";
-          }}
+          className="btn btn-light btn-sm"
+          onClick={() => setIsOpen(!isOpen)}
         >
-          <LogOut className="me-2" size={16} />
-          <span>Logout</span>
+          {isOpen ? <X /> : <Menu />}
         </button>
       </div>
 
-      <style jsx>{`
-        .active-nav {
-          background-color: rgba(255, 255, 255, 0.15) !important;
-          position: relative;
-        }
+      {/* Overlay for mobile */}
+      {isOpen && (
+        <div
+          className="sidebar-overlay d-md-none"
+          onClick={() => setIsOpen(false)}
+        ></div>
+      )}
 
-        .active-nav:after {
-          content: "";
-          position: absolute;
-          left: 0;
-          top: 0;
-          height: 100%;
-          width: 3px;
-          background-color: #4fc3f7;
-          border-radius: 0 4px 4px 0;
-        }
+      {/* Sidebar */}
+      <nav className={`sidebar-custom ${isOpen ? "open" : ""}`}>
+        <div className="p-3 flex-grow-1 overflow-auto">
+          <div className="text-center mb-3">
+            <img src={logo} alt="Logo" width={80} />
+          </div>
 
-        .hover-nav:hover {
-          background-color: rgba(255, 255, 255, 0.1) !important;
-          transform: translateX(3px);
-          transition: all 0.3s ease;
-        }
+          {/* Border bottom after logo */}
+          <div
+            style={{
+              borderBottom: "5px solid rgba(255, 255, 255, 0.1)",
+              marginBottom: "1rem",
+            }}
+          ></div>
 
-        .sidebar-divider {
-          height: 3px;
-          background: rgba(255, 255, 255, 0.1);
-        }
+          <ul className="nav flex-column">
+            <SidebarItem
+              to="/dashboard"
+              icon={LayoutGrid}
+              label="Dashboard"
+              onClick={() => setIsOpen(false)}
+            />
+            <SidebarItem
+              to="/adminProfile"
+              icon={UsersIcon}
+              label="User Profile"
+              onClick={() => setIsOpen(false)}
+            />
+            <SidebarItem
+              to="/users"
+              icon={User}
+              label="Visitors"
+              onClick={() => setIsOpen(false)}
+            />
+            <SidebarItem
+              to="/OrganizationalUser"
+              icon={User}
+              label="Organizers"
+              onClick={() => setIsOpen(false)}
+            />
+            <SidebarItem
+              to="/map-requests"
+              icon={MapPin}
+              label="Requests"
+              onClick={() => setIsOpen(false)}
+            />
+            <SidebarItem
+              to="/send-notification-form"
+              icon={Bell}
+              label="Notifications"
+              onClick={() => setIsOpen(false)}
+            />
+          </ul>
+        </div>
 
-        .nav-item-custom {
-          margin-bottom: 0.8rem;
-          font-size: 1rem;
-        }
-      `}</style>
-    </nav>
+        <div className="p-3">
+          {/* Border top before logout button */}
+          <div
+            style={{
+              borderTop: "5px solid rgba(255, 255, 255, 0.1)",
+              marginBottom: "0.5rem",
+            }}
+          ></div>
+
+          <button className="btn btn-danger w-100" onClick={handleLogout}>
+            <LogOut className="me-2" size={16} />
+            Logout
+          </button>
+        </div>
+      </nav>
+    </>
   );
 };
+
+const SidebarItem = ({ to, icon: Icon, label, onClick }) => (
+  <li className="nav-item mb-2">
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        `nav-link d-flex align-items-center text-white px-3 py-2 rounded ${
+          isActive ? "active-nav" : "hover-nav"
+        }`
+      }
+      onClick={onClick}
+    >
+      <Icon className="me-2" size={20} />
+      {label}
+    </NavLink>
+  </li>
+);
 
 export default Sidebar;

@@ -58,11 +58,17 @@ const AdminProfile = () => {
     if (!imageFile || !user) return null;
 
     try {
+      // Generate a unique filename for the image
+      const fileExtension = imageFile.name.split(".").pop();
       const storageRef = ref(
         storage,
-        `profile_images/${user.uid}_${Date.now()}`
+        `profile_images/${user.uid}/profile.${fileExtension}`
       );
+
+      // Upload the file to Firebase Storage
       const snapshot = await uploadBytes(storageRef, imageFile);
+
+      // Get the download URL
       const downloadURL = await getDownloadURL(snapshot.ref);
       return downloadURL;
     } catch (error) {
@@ -109,20 +115,25 @@ const AdminProfile = () => {
         await reauthenticateUser();
       }
 
-      let newPhotoURL = photoURL;
+      let newPhotoURL = user.photoURL;
 
       // Upload image first if there's a new image
       if (hasImageChange) {
         newPhotoURL = await uploadImage();
       }
 
-      // Update profile with all changes
+      // Prepare updates object
       const updates = {};
       if (hasDisplayNameChange) updates.displayName = displayName;
       if (hasImageChange) updates.photoURL = newPhotoURL;
 
+      // Update profile if there are updates
       if (Object.keys(updates).length > 0) {
         await updateProfile(user, updates);
+        // Update local state
+        if (hasImageChange) {
+          setPhotoURL(newPhotoURL);
+        }
       }
 
       // Update email separately if changed
@@ -130,16 +141,13 @@ const AdminProfile = () => {
         await updateEmail(user, email);
       }
 
-      // Update local state
-      if (hasImageChange) {
-        setPhotoURL(newPhotoURL);
-        setImageFile(null);
-        setImagePreview(null);
-      }
+      // Reset form state
+      setImageFile(null);
+      setImagePreview(null);
+      setPassword("");
 
       setSuccess("Profile updated successfully!");
       setIsEditing(false);
-      setPassword("");
     } catch (error) {
       console.error("Profile update error:", error);
       setError(error.message || "Failed to update profile");
@@ -160,15 +168,19 @@ const AdminProfile = () => {
   };
 
   return (
-    <div className="container-fluid vh-100">
-      <div className="row h-100">
-        <Sidebar handleLogout={handleLogout} />
+    <div className="container-fluid" style={{ minHeight: "100vh" }}>
+      <div className="row">
+        {/* Sidebar Column - fixed width */}
+        <div className="col-md-3 col-lg-2 d-md-flex bg-dark text-white p-0">
+          <Sidebar handleLogout={handleLogout} />
+        </div>
 
-        <main className="col-md-9 col-lg-10 p-4 bg-light">
-          <header className="d-flex justify-content-between align-items-center p-3 bg-white shadow-sm rounded mb-4">
-            <h1 className="h4 fw-bold text-dark mb-0">Profile Settings</h1>
+        {/* Main Content Column */}
+        <div className="col-md-9 col-lg-10 ms-sm-auto px-md-4 py-4">
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <h1 className="h4 fw-bold">Profile Settings</h1>
             <div className="d-flex align-items-center">
-              <span className="me-2 text-dark">
+              <span className="me-2">
                 {user?.displayName || user?.email?.split("@")[0]}
               </span>
               <img
@@ -178,12 +190,12 @@ const AdminProfile = () => {
                 style={{ width: "40px", height: "40px", objectFit: "cover" }}
               />
             </div>
-          </header>
+          </div>
 
           <div className="row g-4">
             {/* Profile Picture Column */}
             <div className="col-md-4">
-              <div className="card shadow-sm h-100 border-0">
+              <div className="card shadow-sm h-100">
                 <div className="card-body text-center d-flex flex-column">
                   <div
                     className="position-relative mx-auto mb-3"
@@ -222,9 +234,7 @@ const AdminProfile = () => {
                     )}
                   </div>
 
-                  <h4 className="mb-1 text-dark">
-                    {user?.displayName || "Admin User"}
-                  </h4>
+                  <h4 className="mb-1">{user?.displayName || "Admin User"}</h4>
                   <p className="text-muted mb-2">{user?.email}</p>
                   <small className="text-muted">
                     Last login:{" "}
@@ -238,12 +248,10 @@ const AdminProfile = () => {
 
             {/* Profile Information Column */}
             <div className="col-md-8">
-              <div className="card shadow-sm h-100 border-0">
+              <div className="card shadow-sm h-100">
                 <div className="card-body">
                   <div className="d-flex justify-content-between align-items-center mb-4">
-                    <h5 className="card-title mb-0 text-dark">
-                      Profile Information
-                    </h5>
+                    <h5 className="card-title mb-0">Profile Information</h5>
                     <button
                       className="btn btn-sm btn-outline-primary"
                       onClick={() =>
@@ -372,7 +380,7 @@ const AdminProfile = () => {
               </div>
             </div>
           </div>
-        </main>
+        </div>
       </div>
     </div>
   );

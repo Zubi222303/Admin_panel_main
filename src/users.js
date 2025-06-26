@@ -10,6 +10,7 @@ import defaultimage from "./Assets/ProfilePicture.jpg";
 const Users = () => {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchVisible, setSearchVisible] = useState(false);
 
@@ -35,6 +36,7 @@ const Users = () => {
 
   useEffect(() => {
     const fetchUsers = async () => {
+      setLoading(true);
       try {
         const querySnapshot = await getDocs(collection(db, "users"));
         const usersData = querySnapshot.docs
@@ -50,6 +52,8 @@ const Users = () => {
         setUsers(usersData);
       } catch (error) {
         console.error("Error fetching users:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -80,7 +84,7 @@ const Users = () => {
               style={{ color: "#044EB0" }}
               className="me-3 fw-bold"
               size={30}
-            />{" "}
+            />
             Visitors
           </h2>
           <div className="d-flex align-items-center">
@@ -102,57 +106,66 @@ const Users = () => {
           </div>
         </div>
 
-        <div className="table-responsive">
-          <table className="table table-hover table-striped shadow-lg rounded">
-            <thead className="table-dark" style={{ background: "#044EB0" }}>
-              <tr>
-                <th>Profile</th>
-                <th>Username</th>
-                <th>Email</th>
-                <th>Remove</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUsers.length > 0 ? (
-                filteredUsers.map((user) => (
-                  <tr key={user.id}>
-                    <td>
-                      <div className="d-flex align-items-center">
-                        <img
-                          src={user.profileImage || defaultimage}
-                          alt={getDisplayName(user)}
-                          className="rounded-circle border"
-                          style={{
-                            width: "40px",
-                            height: "40px",
-                            objectFit: "cover",
-                          }}
-                        />
-                      </div>
-                    </td>
+        {loading ? (
+          <div className="text-center py-5">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+            <p className="mt-2">Loading visitor users...</p>
+          </div>
+        ) : (
+          <div className="table-responsive">
+            <table className="table table-hover table-striped shadow-lg rounded">
+              <thead className="table-dark" style={{ background: "#044EB0" }}>
+                <tr>
+                  <th>Profile</th>
+                  <th>Username</th>
+                  <th>Email</th>
+                  <th>Remove</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.length > 0 ? (
+                  filteredUsers.map((user) => (
+                    <tr key={user.id}>
+                      <td>
+                        <div className="d-flex align-items-center">
+                          <img
+                            src={user.profileImage || defaultimage}
+                            alt={getDisplayName(user)}
+                            className="rounded-circle border"
+                            style={{
+                              width: "40px",
+                              height: "40px",
+                              objectFit: "cover",
+                            }}
+                          />
+                        </div>
+                      </td>
 
-                    <td>{user.username || "N/A"}</td>
-                    <td>{user.email || "N/A"}</td>
-                    <td>
-                      <button
-                        className="btn btn-danger btn-sm"
-                        onClick={() => handleRemoveUser(user.id)}
-                      >
-                        <FaTrash /> Remove
-                      </button>
+                      <td>{user.username || "N/A"}</td>
+                      <td>{user.email || "N/A"}</td>
+                      <td>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => handleRemoveUser(user.id)}
+                        >
+                          <FaTrash /> Remove
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="5" className="text-center">
+                      No visitor users found
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="5" className="text-center">
-                    No visitor users found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
